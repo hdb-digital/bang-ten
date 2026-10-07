@@ -79,11 +79,7 @@ input[type=text]:focus { outline: 2px solid var(--red); outline-offset: 1px; }
       <input type="text" id="name" autocomplete="name" maxlength="60" placeholder="VD: Nguyễn Hoàng Mai Ngọc">
     </label>
     <label class="f">Vị trí
-      <input type="text" id="role" list="roles" maxlength="60" placeholder="VD: Tư vấn bảo hiểm">
-      <datalist id="roles">
-        <option value="Tư vấn bảo hiểm"><option value="Giao dịch viên"><option value="Chuyên viên khách hàng cá nhân">
-        <option value="Chuyên viên khách hàng doanh nghiệp"><option value="Kiểm soát viên"><option value="Trưởng phòng giao dịch">
-      </datalist>
+      <input type="text" id="role" maxlength="60" autocomplete="off" placeholder="VD: Tư vấn bảo hiểm">
     </label>
     <div class="f" style="font-size:12.5px;color:var(--ink2);margin-top:12px">Mã QR</div>
     <label class="drop" id="drop">
