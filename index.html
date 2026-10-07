@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HDBank · Tạo bảng tên</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#da2128">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/brand.css">
+<style>
+/* Font in trên bảng tên: Myriad Pro Bold Condensed, bản rút gọn chỉ giữ chữ Latin + tiếng Việt, số và dấu câu */
+@font-face {
+  font-family: "Myriad Pro BC HDB"; font-weight: 700; font-style: normal; font-display: block;
+  src: url("assets/myriadpro-boldcond-vi.woff2") format("woff2");
+}
+.layout { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding-block: 20px 8px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border-radius: 12px; padding: 18px; border-top: 4px solid var(--red); box-shadow: var(--shadow); }
+.panel h2 { font: 700 17px/1.3 var(--font-head); margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
+label.f { display: block; font-size: 12.5px; color: var(--ink2); margin-top: 12px; }
+label.f:first-of-type { margin-top: 0; }
+input[type=text] {
+  width: 100%; margin-top: 4px; font: inherit; font-size: 16px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+}
+input[type=text]:focus { outline: 2px solid var(--red); outline-offset: 1px; }
+.drop {
+  display: grid; place-items: center; text-align: center; gap: 4px; margin-top: 4px; padding: 18px 12px; cursor: pointer;
+  border: 1.5px dashed var(--gray-30); border-radius: 10px; background: var(--gray-10); color: var(--gray); font-size: 13px;
+}
+.drop:hover, .drop.over { border-color: var(--red); background: var(--red-10); color: var(--ink); }
+.drop:focus-within { outline: 2px solid var(--red); outline-offset: 1px; }
+.drop b { color: var(--red); font-size: 14px; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+.file[hidden] { display: none; }
+.file canvas { width: 56px; height: 56px; flex: none; border: 1px solid var(--line); border-radius: 6px; background: #fff; object-fit: contain; }
+.file .name { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file .x { font: inherit; font-size: 13px; color: var(--red); background: none; border: 0; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.file .x:hover { background: var(--red-10); }
+.check { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink2); margin-top: 10px; }
+.msg { font-size: 12.5px; border-radius: 8px; padding: 8px 10px; margin-top: 8px; overflow-wrap: anywhere; }
+.msg.ok { background: var(--gray-10); border-left: 3px solid var(--gray-50); }
+.msg.warn { background: var(--yellow-20); border-left: 3px solid var(--amber); }
+.msg.err { background: var(--red-10); border-left: 3px solid var(--red); }
+.hint { font-size: 12px; color: var(--gray); margin-top: 6px; }
+.dl { width: 100%; margin-top: 16px; padding: 13px 14px; font-size: 16px; }
+.preview { position: sticky; top: 12px; min-width: 0; }
+.stage { background: var(--surface); box-shadow: var(--shadow); border-radius: 12px; padding: clamp(12px, 3vw, 28px); }
+.paper { background: #fff; box-shadow: 0 1px 2px rgba(88,89,91,.15), 0 8px 28px rgba(88,89,91,.22); line-height: 0; }
+.paper canvas { display: block; width: 100%; height: auto; }
+.cap { color: var(--gray); font-size: 12px; margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <a class="logo" href="/"><img src="assets/logo.png" alt="HDBank" width="113" height="30"></a>
+    <nav class="site-nav" aria-label="Công cụ">
+      <a href="/bang-ten/" aria-current="page">Tạo bảng tên</a>
+    </nav>
+  </div>
+</header>
+<section class="band">
+  <div class="wrap">
+    <h1>Tạo bảng tên nhân viên</h1>
+    <p class="sub">Nhập họ tên, vị trí, tải ảnh mã QR lên rồi tải file JPEG để in. Mọi xử lý diễn ra trên trình duyệt, ảnh của bạn không được gửi đi đâu.</p>
+  </div>
+</section>
+
+<main class="wrap layout">
+  <section class="panel">
+    <h2>Thông tin nhân viên</h2>
+    <label class="f">Họ tên
+      <input type="text" id="name" autocomplete="name" maxlength="60" placeholder="VD: Nguyễn Hoàng Mai Ngọc">
+    </label>
+    <label class="f">Vị trí
+      <input type="text" id="role" list="roles" maxlength="60" placeholder="VD: Tư vấn bảo hiểm">
+      <datalist id="roles">
+        <option value="Tư vấn bảo hiểm"><option value="Giao dịch viên"><option value="Chuyên viên khách hàng cá nhân">
+        <option value="Chuyên viên khách hàng doanh nghiệp"><option value="Kiểm soát viên"><option value="Trưởng phòng giao dịch">
+      </datalist>
+    </label>
+    <div class="f" style="font-size:12.5px;color:var(--ink2);margin-top:12px">Mã QR</div>
+    <label class="drop" id="drop">
+      <input type="file" id="qrFile" accept="image/*">
+      <b>Chọn ảnh mã QR</b>
+      <span>hoặc kéo thả ảnh vào đây, hoặc dán bằng Ctrl+V</span>
+    </label>
+    <div class="file" id="fileRow" hidden>
+      <canvas id="thumb" width="112" height="112"></canvas>
+      <span class="name" id="fileName"></span>
+      <button class="x" id="clearQr" type="button">Xoá</button>
+    </div>
+    <label class="check"><input type="checkbox" id="trim" checked> Tự cắt viền trắng quanh mã QR</label>
+    <div id="qrMsg"></div>
+
+    <button class="btn primary dl" id="dl" type="button" disabled>Tải JPEG để in</button>
+    <div class="hint" id="need"></div>
+  </section>
+
+  <div class="preview">
+    <div class="stage"><div class="paper"><canvas id="design" width="3516" height="1182"></canvas></div></div>
+    <div class="cap">3516 × 1182 px · 300 dpi ≈ 29,8 × 10 cm · xem trước theo tỉ lệ</div>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span><b>HDBank Digital</b> · Trang nội bộ</span>
+    <span>Hotline <a href="tel:19006060">1900 6060</a> · <a href="https://www.hdbank.com.vn" target="_blank" rel="noopener">www.hdbank.com.vn</a></span>
+  </div>
+</footer>
+
+<script src="jsQR.min.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const FONT = '"Myriad Pro BC HDB", "Myriad Pro", "Arial Narrow", sans-serif';
+const CAP = 0.674; // chiều cao chữ hoa / cỡ chữ của Myriad Pro Bold Condensed
+const SX = 1.12;   // mẫu gốc giãn ngang chữ 112%
+const DPI = 300;
+/* Bố cục theo mẫu gốc, toạ độ pixel trên ảnh nền 3516 × 1182.
+   cx = tâm ngang của chữ, mid = tâm theo chiều cao chữ hoa, maxW = bề rộng tối đa, size = cỡ chữ chuẩn (chữ hoa cao 219 px). */
+const LAYOUT = {
+  name: { cx: 1759, mid: 360.5, maxW: 3240, size: 325, color: "#e50000" },
+  role: { cx: 1708, mid: 921.5, maxW: 2460, size: 325, color: "#ffffff" },
+  qr:   { x: 3058, y: 724, s: 378, pad: 18 }, // ô vuông trắng trên thanh đỏ
+};
+
+const state = { bg: null, qrRaw: null, qr: null, fileName: "" };
+
+/* ---------------- chữ ---------------- */
+const clean = (s) => s.normalize("NFC").replace(/\s+/g, " ").trim();
+const upper = (s) => clean(s).toLocaleUpperCase("vi");
+function slug(t) {
+  return clean(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[đĐ]/g, "d").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "bang-ten";
+}
+/** Chữ 1 dòng, tự thu nhỏ cho vừa bề rộng; nếu quá dài thì xuống 2 dòng khi 2 dòng cho chữ to hơn rõ rệt. */
+function drawText(ctx, text, L, faded) {
+  const font = (f) => `700 ${f}px ${FONT}`;
+  ctx.font = font(L.size);
+  const wid = (t) => ctx.measureText(t).width * SX;
+  const w1 = wid(text);
+  let lines = [text], f = Math.min(L.size, L.size * L.maxW / w1);
+  const words = text.split(" ");
+  if (words.length > 1 && f < L.size * 0.8) {
+    let best = null;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(" "), b = words.slice(i).join(" ");
+      const w = Math.max(wid(a), wid(b));
+      if (!best || w < best.w) best = { w, a, b };
+    }
+    const f2 = Math.min(L.size * 0.7, L.size * L.maxW / best.w);
+    if (f2 > f * 1.12) { lines = [best.a, best.b]; f = f2; }
+  }
+  const pitch = f * 1.05, base = L.mid + (CAP * f) / 2 - (pitch * (lines.length - 1)) / 2;
+  ctx.font = font(f);
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = L.color; ctx.globalAlpha = faded ? 0.35 : 1;
+  ctx.save(); ctx.translate(L.cx, 0); ctx.scale(SX, 1);
+  lines.forEach((t, i) => ctx.fillText(t, 0, base + i * pitch));
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+/* ---------------- mã QR ---------------- */
+function loadImage(src) {
+  return new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = src; });
+}
+/** Ảnh tải lên → canvas nền trắng (ảnh trong suốt thành trắng), giới hạn 2000 px cho nhẹ. */
+function toCanvas(img) {
+  const w0 = img.naturalWidth || img.width || 1000, h0 = img.naturalHeight || img.height || 1000;
+  const k = Math.min(1, 2000 / Math.max(w0, h0));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  x.imageSmoothingQuality = "high"; x.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+/** Cắt phần viền sáng quanh mã: giữ các hàng/cột có điểm tối (bỏ qua vài điểm nhiễu lẻ). */
+function trimCanvas(c) {
+  const { width: w, height: h } = c, d = c.getContext("2d").getImageData(0, 0, w, h).data;
+  const rows = new Uint32Array(h), cols = new Uint32Array(w);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (Math.min(d[i], d[i + 1], d[i + 2]) < 160) { rows[y]++; cols[x]++; }
+  }
+  const tr = Math.max(1, Math.round(w * 0.004)), tc = Math.max(1, Math.round(h * 0.004));
+  let y0 = 0, y1 = h - 1, x0 = 0, x1 = w - 1;
+  while (y0 < h && rows[y0] <= tr) y0++;
+  while (y1 > y0 && rows[y1] <= tr) y1--;
+  while (x0 < w && cols[x0] <= tc) x0++;
+  while (x1 > x0 && cols[x1] <= tc) x1--;
+  if (y0 >= y1 || x0 >= x1) return c; // ảnh trắng trơn: giữ nguyên
+  const o = document.createElement("canvas");
+  o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+  o.getContext("2d").drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+/** Đọc thử mã QR (thêm lề trắng 10% để dễ nhận). Trả về nội dung hoặc null. */
+function decode(c) {
+  if (typeof jsQR !== "function") return undefined;
+  const k = Math.min(1, 900 / Math.max(c.width, c.height)), m = Math.round(Math.max(c.width, c.height) * k * 0.1);
+  const t = document.createElement("canvas");
+  t.width = Math.round(c.width * k) + 2 * m; t.height = Math.round(c.height * k) + 2 * m;
+  const x = t.getContext("2d", { willReadFrequently: true });
+  x.fillStyle = "#fff"; x.fillRect(0, 0, t.width, t.height);
+  x.drawImage(c, m, m, t.width - 2 * m, t.height - 2 * m);
+  const r = jsQR(x.getImageData(0, 0, t.width, t.height).data, t.width, t.height, { inversionAttempts: "attemptBoth" });
+  return r ? r.data : null;
+}
+function processQr() {
+  const box = $("qrMsg");
+  box.replaceChildren();
+  if (!state.qrRaw) { state.qr = null; $("fileRow").hidden = true; render(); return; }
+  state.qr = $("trim").checked ? trimCanvas(state.qrRaw) : state.qrRaw;
+  const th = $("thumb"), tx = th.getContext("2d"), q = state.qr;
+  const k = Math.min(th.width / q.width, th.height / q.height);
+  tx.fillStyle = "#fff"; tx.fillRect(0, 0, th.width, th.height);
+  tx.drawImage(q, (th.width - q.width * k) / 2, (th.height - q.height * k) / 2, q.width * k, q.height * k);
+  $("fileName").textContent = state.fileName; $("fileRow").hidden = false;
+
+  const msgs = [];
+  const data = decode(q) ?? decode(state.qrRaw);
+  if (data) msgs.push(["ok", "Đọc được mã QR: " + (data.length > 140 ? data.slice(0, 140) + "…" : data)]);
+  else if (data === null) msgs.push(["warn", "Không tự đọc được mã QR trong ảnh. Hãy kiểm tra lại ảnh, hoặc quét thử bản in bằng điện thoại."]);
+  const ratio = q.width / q.height;
+  if (ratio < 0.9 || ratio > 1.1) msgs.push(["warn", "Ảnh không vuông nên mã QR sẽ không lấp đầy ô trắng. Nên dùng ảnh chỉ có mã QR (cắt bỏ chữ, khung bên ngoài)."]);
+  if (Math.min(q.width, q.height) < 250) msgs.push(["warn", `Ảnh mã QR nhỏ (${q.width} × ${q.height} px), bản in có thể bị mờ. Nên dùng ảnh từ 400 px trở lên.`]);
+  for (const [lv, t] of msgs) { const m = document.createElement("div"); m.className = `msg ${lv}`; m.textContent = t; box.append(m); }
+  render();
+}
+async function setQrFile(file) {
+  if (!file || !/^image\//.test(file.type)) { showErr("File không phải ảnh. Hãy chọn ảnh PNG, JPG hoặc SVG chứa mã QR."); return; }
+  const url = URL.createObjectURL(file);
+  try {
+    state.qrRaw = toCanvas(await loadImage(url));
+    state.fileName = file.name || "Ảnh dán từ clipboard";
+    processQr();
+  } catch (e) {
+    console.error(e); showErr("Không mở được ảnh này. Hãy thử ảnh PNG hoặc JPG khác.");
+  } finally { URL.revokeObjectURL(url); }
+}
+function showErr(t) {
+  const m = document.createElement("div"); m.className = "msg err"; m.textContent = t;
+  $("qrMsg").replaceChildren(m);
+}
+
+/* ---------------- thiết kế ---------------- */
+function draw(cv, preview) {
+  const ctx = cv.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(state.bg, 0, 0, cv.width, cv.height);
+  const name = upper($("name").value), role = upper($("role").value);
+  if (name || preview) drawText(ctx, name || "HỌ VÀ TÊN", LAYOUT.name, !name);
+  if (role || preview) drawText(ctx, role || "VỊ TRÍ CÔNG VIỆC", LAYOUT.role, !role);
+
+  const Q = LAYOUT.qr, S = Q.s - 2 * Q.pad;
+  if (state.qr) {
+    const q = state.qr, k = Math.min(S / q.width, S / q.height), w = q.width * k, h = q.height * k;
+    ctx.drawImage(q, Q.x + Q.pad + (S - w) / 2, Q.y + Q.pad + (S - h) / 2, w, h);
+  } else if (preview) {
+    ctx.setLineDash([16, 12]); ctx.lineWidth = 4; ctx.strokeStyle = "#acacad";
+    ctx.strokeRect(Q.x + Q.pad, Q.y + Q.pad, S, S); ctx.setLineDash([]);
+    ctx.fillStyle = "#8a8b8c"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `700 64px ${FONT}`; ctx.fillText("MÃ QR", Q.x + Q.s / 2, Q.y + Q.s / 2);
+  }
+}
+function missing() {
+  const m = [];
+  if (!clean($("name").value)) m.push("họ tên");
+  if (!clean($("role").value)) m.push("vị trí");
+  if (!state.qr) m.push("ảnh mã QR");
+  return m;
+}
+let raf = 0;
+function render() {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => {
+    if (!state.bg) return;
+    draw($("design"), true);
+    const m = missing();
+    $("dl").disabled = m.length > 0;
+    $("need").textContent = m.length ? `Cần thêm ${m.join(", ")} để tải file.` : "Kiểm tra chính tả và quét thử mã QR trước khi in.";
+  });
+}
+
+/* ---------------- xuất JPEG 300 dpi ---------------- */
+/** Ghi mật độ 300 dpi vào header JFIF để phần mềm in hiểu đúng khổ ≈ 29,8 × 10 cm. */
+async function withDpi(blob) {
+  const b = new Uint8Array(await blob.arrayBuffer());
+  const jfif = b[2] === 0xff && b[3] === 0xe0 && b[6] === 0x4a && b[7] === 0x46 && b[8] === 0x49 && b[9] === 0x46 && b[10] === 0;
+  if (jfif) { b[13] = 1; b[14] = DPI >> 8; b[15] = DPI & 255; b[16] = DPI >> 8; b[17] = DPI & 255; }
+  return new Blob([b], { type: "image/jpeg" });
+}
+$("dl").addEventListener("click", () => {
+  if (missing().length) return;
+  const cv = document.createElement("canvas");
+  cv.width = state.bg.naturalWidth; cv.height = state.bg.naturalHeight;
+  draw(cv, false);
+  cv.toBlob(async (blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(await withDpi(blob));
+    a.download = `BangTen_${slug($("name").value)}.jpg`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, "image/jpeg", 0.95);
+});
+
+/* ---------------- điều khiển ---------------- */
+$("name").addEventListener("input", render);
+$("role").addEventListener("input", render);
+$("trim").addEventListener("change", processQr);
+$("qrFile").addEventListener("change", (e) => { setQrFile(e.target.files[0]); e.target.value = ""; });
+$("clearQr").addEventListener("click", () => { state.qrRaw = null; state.fileName = ""; processQr(); });
+const drop = $("drop");
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, () => drop.classList.remove("over")));
+drop.addEventListener("drop", (e) => { e.preventDefault(); setQrFile(e.dataTransfer.files[0]); });
+window.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); setQrFile(item.getAsFile()); }
+});
+
+(async function boot() {
+  const fontReady = document.fonts ? document.fonts.load(`700 100px "Myriad Pro BC HDB"`, "NGUYỄN HOÀNG MAI NGỌC").catch(() => {}) : null;
+  state.bg = (await Promise.all([loadImage("assets/bg-bangten.jpg"), fontReady]))[0];
+  render();
+})();
+</script>
+</body>
+</html>
