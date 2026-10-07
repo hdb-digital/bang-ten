@@ -43,6 +43,7 @@ input[type=text]:focus { outline: 2px solid var(--red); outline-offset: 1px; }
 .file .x { font: inherit; font-size: 13px; color: var(--red); background: none; border: 0; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .file .x:hover { background: var(--red-10); }
 .check { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink2); margin-top: 10px; }
+.qr-toggle { margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--ink); }
 .msg { font-size: 12.5px; border-radius: 8px; padding: 8px 10px; margin-top: 8px; overflow-wrap: anywhere; }
 .msg.ok { background: var(--gray-10); border-left: 3px solid var(--gray-50); }
 .msg.warn { background: var(--yellow-20); border-left: 3px solid var(--amber); }
@@ -68,7 +69,7 @@ input[type=text]:focus { outline: 2px solid var(--red); outline-offset: 1px; }
 <section class="band">
   <div class="wrap">
     <h1>Tạo bảng tên nhân viên</h1>
-    <p class="sub">Nhập họ tên, vị trí, tải ảnh mã QR lên rồi tải file JPEG để in. Mọi xử lý diễn ra trên trình duyệt, ảnh của bạn không được gửi đi đâu.</p>
+    <p class="sub">Nhập họ tên, vị trí, tải ảnh mã QR lên (nếu có) rồi tải file JPEG để in. Mọi xử lý diễn ra trên trình duyệt, ảnh của bạn không được gửi đi đâu.</p>
   </div>
 </section>
 
@@ -81,19 +82,21 @@ input[type=text]:focus { outline: 2px solid var(--red); outline-offset: 1px; }
     <label class="f">Vị trí
       <input type="text" id="role" maxlength="60" autocomplete="off" placeholder="VD: Tư vấn bảo hiểm">
     </label>
-    <div class="f" style="font-size:12.5px;color:var(--ink2);margin-top:12px">Mã QR</div>
-    <label class="drop" id="drop">
-      <input type="file" id="qrFile" accept="image/*">
-      <b>Chọn ảnh mã QR</b>
-      <span>hoặc kéo thả ảnh vào đây, hoặc dán bằng Ctrl+V</span>
-    </label>
-    <div class="file" id="fileRow" hidden>
-      <canvas id="thumb" width="112" height="112"></canvas>
-      <span class="name" id="fileName"></span>
-      <button class="x" id="clearQr" type="button">Xoá</button>
+    <label class="check qr-toggle"><input type="checkbox" id="useQr" checked> Tạo mã QR</label>
+    <div id="qrBox">
+      <label class="drop" id="drop">
+        <input type="file" id="qrFile" accept="image/*">
+        <b>Chọn ảnh mã QR</b>
+        <span>hoặc kéo thả ảnh vào đây, hoặc dán bằng Ctrl+V</span>
+      </label>
+      <div class="file" id="fileRow" hidden>
+        <canvas id="thumb" width="112" height="112"></canvas>
+        <span class="name" id="fileName"></span>
+        <button class="x" id="clearQr" type="button">Xoá</button>
+      </div>
+      <label class="check"><input type="checkbox" id="trim" checked> Tự cắt viền trắng quanh mã QR</label>
+      <div id="qrMsg"></div>
     </div>
-    <label class="check"><input type="checkbox" id="trim" checked> Tự cắt viền trắng quanh mã QR</label>
-    <div id="qrMsg"></div>
 
     <button class="btn primary dl" id="dl" type="button" disabled>Tải JPEG để in</button>
     <div class="hint" id="need"></div>
@@ -125,10 +128,13 @@ const DPI = 300;
 const LAYOUT = {
   name: { cx: 1759, mid: 360.5, maxW: 3240, size: 325, color: "#e50000" },
   role: { cx: 1708, mid: 921.5, maxW: 2460, size: 325, color: "#ffffff" },
+  roleNoQr: { cx: 1759, mid: 921.5, maxW: 2300, size: 325, color: "#ffffff" }, // mẫu không có mã QR: căn giữa theo họ tên, tránh mảng vàng bên trái
   qr:   { x: 3058, y: 724, s: 378, pad: 18 }, // ô vuông trắng trên thanh đỏ
 };
 
-const state = { bg: null, qrRaw: null, qr: null, fileName: "" };
+const state = { bgs: {}, qrRaw: null, qr: null, fileName: "" }; // bgs.qr = nền có ô trắng cho mã QR, bgs.noqr = nền không có ô
+const useQr = () => $("useQr").checked;
+const bg = () => state.bgs[useQr() ? "qr" : "noqr"];
 
 /* ---------------- chữ ---------------- */
 const clean = (s) => s.normalize("NFC").replace(/\s+/g, " ").trim();
@@ -252,10 +258,11 @@ function showErr(t) {
 function draw(cv, preview) {
   const ctx = cv.getContext("2d");
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(state.bg, 0, 0, cv.width, cv.height);
+  ctx.drawImage(bg(), 0, 0, cv.width, cv.height);
   const name = upper($("name").value), role = upper($("role").value);
   if (name || preview) drawText(ctx, name || "HỌ VÀ TÊN", LAYOUT.name, !name);
-  if (role || preview) drawText(ctx, role || "VỊ TRÍ CÔNG VIỆC", LAYOUT.role, !role);
+  if (role || preview) drawText(ctx, role || "VỊ TRÍ CÔNG VIỆC", useQr() ? LAYOUT.role : LAYOUT.roleNoQr, !role);
+  if (!useQr()) return;
 
   const Q = LAYOUT.qr, S = Q.s - 2 * Q.pad;
   if (state.qr) {
@@ -272,18 +279,18 @@ function missing() {
   const m = [];
   if (!clean($("name").value)) m.push("họ tên");
   if (!clean($("role").value)) m.push("vị trí");
-  if (!state.qr) m.push("ảnh mã QR");
+  if (useQr() && !state.qr) m.push("ảnh mã QR");
   return m;
 }
 let raf = 0;
 function render() {
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(() => {
-    if (!state.bg) return;
+    if (!bg()) return;
     draw($("design"), true);
     const m = missing();
     $("dl").disabled = m.length > 0;
-    $("need").textContent = m.length ? `Cần thêm ${m.join(", ")} để tải file.` : "Kiểm tra chính tả và quét thử mã QR trước khi in.";
+    $("need").textContent = m.length ? `Cần thêm ${m.join(", ")} để tải file.` : (useQr() ? "Kiểm tra chính tả và quét thử mã QR trước khi in." : "Kiểm tra chính tả trước khi in.");
   });
 }
 
@@ -298,7 +305,7 @@ async function withDpi(blob) {
 $("dl").addEventListener("click", () => {
   if (missing().length) return;
   const cv = document.createElement("canvas");
-  cv.width = state.bg.naturalWidth; cv.height = state.bg.naturalHeight;
+  cv.width = bg().naturalWidth; cv.height = bg().naturalHeight;
   draw(cv, false);
   cv.toBlob(async (blob) => {
     const a = document.createElement("a");
@@ -313,6 +320,7 @@ $("dl").addEventListener("click", () => {
 $("name").addEventListener("input", render);
 $("role").addEventListener("input", render);
 $("trim").addEventListener("change", processQr);
+$("useQr").addEventListener("change", () => { $("qrBox").hidden = !useQr(); render(); });
 $("qrFile").addEventListener("change", (e) => { setQrFile(e.target.files[0]); e.target.value = ""; });
 $("clearQr").addEventListener("click", () => { state.qrRaw = null; state.fileName = ""; processQr(); });
 const drop = $("drop");
@@ -321,12 +329,12 @@ const drop = $("drop");
 drop.addEventListener("drop", (e) => { e.preventDefault(); setQrFile(e.dataTransfer.files[0]); });
 window.addEventListener("paste", (e) => {
   const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
-  if (item) { e.preventDefault(); setQrFile(item.getAsFile()); }
+  if (item && useQr()) { e.preventDefault(); setQrFile(item.getAsFile()); }
 });
 
 (async function boot() {
   const fontReady = document.fonts ? document.fonts.load(`700 100px "Myriad Pro BC HDB"`, "NGUYỄN HOÀNG MAI NGỌC").catch(() => {}) : null;
-  state.bg = (await Promise.all([loadImage("assets/bg-bangten.jpg"), fontReady]))[0];
+  [state.bgs.qr, state.bgs.noqr] = await Promise.all([loadImage("assets/bg-bangten.jpg"), loadImage("assets/bg-bangten-noqr.jpg"), fontReady]);
   render();
 })();
 </script>
